@@ -46,14 +46,26 @@ class LoanApplicationState(TypedDict):
     objections_raised: List[str]
     negotiation_history: List[Dict[str, Any]]
     recommended_offers: List[Dict[str, Any]]
+    selected_offer: Optional[Dict[str, Any]]
     
     # Verification Data
     kyc_verified: bool
+    kyc_pan: Optional[str]
+    kyc_aadhaar_last4: Optional[str]
+    kyc_dob: Optional[str]
+    kyc_email: Optional[str]
+    alt_phone: Optional[str]
     phone_verified: bool
     address_verified: bool
     otp_sent: bool
     otp_attempts: int
+    otp_provider: Optional[str]
     verification_notes: Optional[str]
+    id_document_front_url: Optional[str]
+    id_document_back_url: Optional[str]
+    otp_code: Optional[str]
+    otp_phone: Optional[str]
+    otp_resend_count: int
     
     # Underwriting Data
     credit_score: Optional[int]
@@ -63,9 +75,13 @@ class LoanApplicationState(TypedDict):
     monthly_salary: Optional[float]
     debt_to_income_ratio: Optional[float]
     existing_emi_total: Optional[float]
+    total_monthly_obligation: Optional[float]
+    emi_to_income_ratio: Optional[float]
+    risk_score: Optional[float]
     underwriting_decision: Optional[Literal["approved", "rejected", "needs_documents", "pending"]]
     rejection_reason: Optional[str]
     conditional_requirements: List[str]
+    underwriting_recommendations: List[str]
     
     # Final Output
     sanction_letter_url: Optional[str]
@@ -152,15 +168,27 @@ def create_initial_state(customer_id: Optional[str] = None) -> LoanApplicationSt
         customer_needs=None,
         objections_raised=[],
         negotiation_history=[],
-        recommended_offers=[],
+    recommended_offers=[],
+    selected_offer=None,
         
         # Verification Data
         kyc_verified=False,
+    kyc_pan=None,
+    kyc_aadhaar_last4=None,
+    kyc_dob=None,
+    kyc_email=None,
+    alt_phone=None,
         phone_verified=False,
         address_verified=False,
         otp_sent=False,
         otp_attempts=0,
-        verification_notes=None,
+    otp_provider=None,
+    otp_code=None,
+    otp_phone=None,
+    otp_resend_count=0,
+    verification_notes=None,
+    id_document_front_url=None,
+    id_document_back_url=None,
         
         # Underwriting Data
         credit_score=None,
@@ -169,10 +197,14 @@ def create_initial_state(customer_id: Optional[str] = None) -> LoanApplicationSt
         salary_slip_url=None,
         monthly_salary=None,
         debt_to_income_ratio=None,
-        existing_emi_total=None,
+    existing_emi_total=None,
+    total_monthly_obligation=None,
+    emi_to_income_ratio=None,
+    risk_score=None,
         underwriting_decision="pending",
         rejection_reason=None,
-        conditional_requirements=[],
+    conditional_requirements=[],
+    underwriting_recommendations=[],
         
         # Final Output
         sanction_letter_url=None,

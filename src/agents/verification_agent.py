@@ -79,26 +79,27 @@ Key Principles:
         
         # Check KYC status in CRM
         kyc_status = customer.get("kyc_status", "unknown")
-        
-        message = f"""Thank you! Now let's quickly verify your details for security purposes. This will only take a minute.
 
-📋 **Verification Process**:
-1. ✓ Identity verification
-2. ○ Phone verification (OTP)
-3. ○ Address confirmation
+        message = f"""Thank you! Let's quickly verify your details for security. This will only take a minute.
 
-I have your details on file:
+📋 **Verification Steps**
+1) Identity: Share PAN, DOB, and Email
+2) Phone: We'll send an OTP to {customer['phone']}
+3) Address: Confirm your current address
+
+I have your records on file:
 - Name: {customer['name']}
 - Phone: {customer['phone']}
 - City: {customer['city']}
 
 **KYC Status**: {kyc_status.upper()}
 
-To proceed, I'll send an OTP to your registered mobile number {customer['phone']}. 
+You can reply here (e.g., "PAN: ABCDE1234F | DOB: 1990-05-10 | Email: name@example.com")
+and type "SEND OTP" to receive the code.
 
-Type "SEND OTP" when you're ready to receive it.
+Alternatively, use the verification panel below to submit details.
 """
-        
+
         return {
             "success": True,
             "message": message,
@@ -124,7 +125,7 @@ Type "SEND OTP" when you're ready to receive it.
         # Generate OTP
         otp = simulate_otp_generation(phone)
         
-        # Store OTP temporarily
+        # Store OTP temporarily (instance-level cache). Note: Workflow also persists into state.
         self.otp_store[customer_id] = {
             "otp": otp,
             "phone": phone,
@@ -146,7 +147,8 @@ A 6-digit OTP has been sent to {phone}.
         return {
             "success": True,
             "message": message,
-            "otp_sent": True
+            "otp_sent": True,
+            "otp_code": otp  # Expose for workflow state persistence and robust verification
         }
     
     def verify_otp_input(

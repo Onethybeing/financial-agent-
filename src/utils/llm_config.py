@@ -29,7 +29,7 @@ def get_llm(temperature: float = 0.7, model: Optional[str] = None):
             from langchain_google_genai import ChatGoogleGenerativeAI
             
             model_name = model or os.getenv("GOOGLE_MODEL", "gemini-pro")
-            print(f"✓ Using Google Gemini: {model_name}")
+            print(f"[OK] Using Google Gemini: {model_name}")
             
             return ChatGoogleGenerativeAI(
                 model=model_name,
@@ -38,9 +38,9 @@ def get_llm(temperature: float = 0.7, model: Optional[str] = None):
                 convert_system_message_to_human=True  # Gemini doesn't support system messages directly
             )
         except ImportError:
-            print("⚠ Google Gemini packages not installed, trying OpenAI...")
+            print("[WARN] Google Gemini packages not installed, trying OpenAI...")
         except Exception as e:
-            print(f"⚠ Error initializing Google Gemini: {e}, trying OpenAI...")
+            print(f"[WARN] Error initializing Google Gemini: {e}, trying OpenAI...")
     
     # Try OpenAI GPT-4
     openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -49,7 +49,7 @@ def get_llm(temperature: float = 0.7, model: Optional[str] = None):
             from langchain_openai import ChatOpenAI
             
             model_name = model or os.getenv("OPENAI_MODEL", "gpt-4")
-            print(f"✓ Using OpenAI: {model_name}")
+            print(f"[OK] Using OpenAI: {model_name}")
             
             return ChatOpenAI(
                 model=model_name,
@@ -57,9 +57,9 @@ def get_llm(temperature: float = 0.7, model: Optional[str] = None):
                 openai_api_key=openai_api_key
             )
         except ImportError:
-            print("⚠ OpenAI packages not installed, trying Anthropic...")
+            print("[WARN] OpenAI packages not installed, trying Anthropic...")
         except Exception as e:
-            print(f"⚠ Error initializing OpenAI: {e}, trying Anthropic...")
+            print(f"[WARN] Error initializing OpenAI: {e}, trying Anthropic...")
     
     # Try Anthropic Claude
     anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
@@ -68,7 +68,7 @@ def get_llm(temperature: float = 0.7, model: Optional[str] = None):
             from langchain_anthropic import ChatAnthropic
             
             model_name = model or os.getenv("ANTHROPIC_MODEL", "claude-3-sonnet-20240229")
-            print(f"✓ Using Anthropic Claude: {model_name}")
+            print(f"[OK] Using Anthropic Claude: {model_name}")
             
             return ChatAnthropic(
                 model=model_name,
@@ -76,18 +76,19 @@ def get_llm(temperature: float = 0.7, model: Optional[str] = None):
                 anthropic_api_key=anthropic_api_key
             )
         except ImportError:
-            print("⚠ Anthropic packages not installed")
+            print("[WARN] Anthropic packages not installed")
         except Exception as e:
-            print(f"⚠ Error initializing Anthropic: {e}")
+            print(f"[WARN] Error initializing Anthropic: {e}")
     
-    # No valid API key found
-    raise ValueError(
-        "No valid API key found! Please set one of:\n"
-        "  - GOOGLE_API_KEY (for Google Gemini)\n"
-        "  - OPENAI_API_KEY (for OpenAI GPT-4)\n"
-        "  - ANTHROPIC_API_KEY (for Anthropic Claude)\n"
-        "in your .env file"
-    )
+    # No valid API key found - use mock LLM for testing
+    print("[WARN] No valid API key found. Using Mock LLM for testing...")
+    print("[INFO] For production, please set one of:")
+    print("   - GOOGLE_API_KEY (for Google Gemini)")
+    print("   - OPENAI_API_KEY (for OpenAI GPT-4)")
+    print("   - ANTHROPIC_API_KEY (for Anthropic Claude)")
+    
+    from src.utils.mock_llm import get_mock_llm
+    return get_mock_llm(temperature=temperature)
 
 
 def get_available_providers():

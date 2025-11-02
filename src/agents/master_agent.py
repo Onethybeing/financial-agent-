@@ -186,6 +186,32 @@ Respond naturally and appropriately for the current stage. If you need to delega
         
         # Stage transitions based on keywords and state
         if current_stage == "greeting":
+            # If amount is already known from UI parsing, go straight to Sales (no need to wait for keywords)
+            if state.get("requested_amount"):
+                return ("delegate_to_sales", "sales_negotiation")
+            
+            # Try to detect amount directly from message even without loan keywords
+            import re
+            amt = None
+            patterns = [
+                (r"(\d+\.?\d*)\s*(?:lakh|lakhs|lac|lacs)", 100000),
+                (r"(\d+\.?\d*)\s*(?:l|L)", 100000),
+                (r"(\d+\.?\d*)\s*(?:thousand|k|K)", 1000),
+                (r"(\d{4,})", 1),
+            ]
+            for pattern, mult in patterns:
+                m = re.search(pattern, user_message_lower)
+                if m:
+                    try:
+                        amt = float(m.group(1)) * mult
+                    except Exception:
+                        amt = None
+                    break
+            if amt:
+                state["requested_amount"] = amt  # hint for downstream
+                return ("delegate_to_sales", "sales_negotiation")
+
+            # If user mentions loan intent, move to needs assessment
             if any(word in user_message_lower for word in ["loan", "money", "borrow", "need", "want"]):
                 return (None, "needs_assessment")
             return (None, "greeting")
@@ -202,12 +228,38 @@ Respond naturally and appropriately for the current stage. If you need to delega
             return (None, "needs_assessment")
         
         elif current_stage == "sales_negotiation":
-            # If sales negotiation done, move to verification
-            if state.get("approved_amount") or state.get("tenure_months"):
+            # Detect acceptance/selection -> move to verification
+            accept_terms = [
+                "proceed", "go ahead", "accept", "let's go", "lets go",
+                "confirm", "finalize", "book", "i agree", "looks good"
+            ]
+            if any(p in user_message_lower for p in accept_terms):
                 return ("delegate_to_verification", "verification")
+
+            # Detect explicit option selection or tenure keywords
+            import re
+            if re.search(r"option\s*[1-9]", user_message_lower) or re.search(r"\b(\d+)\s*(year|years|yr|yrs|month|months)\b", user_message_lower):
+                return ("delegate_to_sales", "sales_negotiation")
+
+            # Detect negotiation intent (rate/emi/discount/% mentions)
+            negotiation_cues = [
+                "rate", "reduce", "discount", "lower", "cheaper", "negotiate", "negotiation", "emi"
+            ]
+            if any(k in user_message_lower for k in negotiation_cues) or re.search(r"\d+\s*%", user_message_lower):
+                return ("delegate_to_sales", "sales_negotiation")
+
             return (None, "sales_negotiation")
         
         elif current_stage == "verification":
+            # Route to verification worker on explicit triggers
+            # 1) If user asks to send OTP
+            if any(kw in user_message_lower for kw in ["send otp", "otp", "resend otp", "send the otp"]):
+                return ("delegate_to_verification", "verification")
+            # 2) If user provides a 4-6 digit code and otp was sent
+            import re
+            if state.get("otp_sent"):
+                if re.search(r"\b\d{4,6}\b", user_message_lower):
+                    return ("delegate_to_verification", "verification")
             # If verification complete, move to underwriting
             if state.get("kyc_verified") and state.get("phone_verified"):
                 return ("delegate_to_underwriting", "underwriting")
